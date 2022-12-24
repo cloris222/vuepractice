@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>vue(composition)</title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- 輸入欄 -->
+      <input
+        type="text"
+        v-model="newItem"
+        @keydown.enter="addItem"
+        :style="inputStyle"
+      />
+      <!-- 新增按鈕 -->
+      <input type="button" value="新增" @click="addItem" />
+
+      <hr>
+
+      <input type="button" value="全部標示已完成" @click="isDone(true)">
+      <input type="button" value="全部標示未完成" @click="isDone(false)">
+
+      <br>
+
+      <input type="button" value="顯示全部" @click="filter=0">
+      <input type="button" value="顯示已完成" @click="filter=1">
+      <input type="button" value="顯示未完成" @click="filter=-1">
+
+      <br>
+
+      <input type="button" value="刪除全部" @click="delAll">
+      <input type="button" value="刪除已完成" @click="delIsDone(true)">
+      <input type="button" value="刪除未完成" @click="delIsDone(false)">
+
+<hr>
+
+
+      <!-- 新增事項 -->
+    <ul>
+        <!-- 用item.id綁定原陣列與filter後的陣列,讓vue知道如何關聯二者 -->
+        <li v-for="item in filterItem" :key="item.id">
+          <input type="checkbox" v-model="item.done" />
+          <span v-if="item.edit">
+            <input type="text" v-model="item.model" @keydown.enter="saveEdit(item.id)" @keydown.esc="cancelEdit(item.id)"/>
+          </span>
+          <span v-else @dblclick="editItem(item.id)">
+            <del v-if="item.done">{{ item.name }}</item></del>
+            <span v-else>{{ item.name }}</span>
+          </span>
+          <!-- 刪除按鈕 -->
+          <input type="button" value="x" @click="delItem(item.id)">
+        </li>
+      </ul>
+    </div>
+
+  
+    
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <script>
+      const {ref,reactive,computed,watch,onMounted}=Vue
+      Vue.createApp({
+        setup(){
+          const savedItem = JSON.parse(localStorage.newTodo || '[]')
+          const newItem = ref('')
+          const items = reactive(savedItem)
+          let id =ref(items.length>0?items[(items.length-1)].id+1:1) 
+          const filter = ref('')
+
+          const addItem=()=>{
+            if(newItem.value<2) return
+    
+            items.push({
+              id:id.value++,
+              name:newItem.value,
+              done:false,
+              model:newItem.value,
+              edit:false
+            })
+
+            newItem.value = ''
+          }
+
+          const findIndexById=(id)=>{
+            return items.findIndex(item=>item.id===id)
+          }
+
+          const editItem=(id)=>{
+            items[findIndexById(id)].edit=true
+          }
+
+          const saveEdit=(id)=>{
+            const idx = findIndexById(id)
+            items[idx].name = items[idx].model
+            items[idx].edit=false
+          }
+
+          const cancelEdit=(id)=>{
+            const idx = findIndexById(id)
+            items[idx].model = items[idx].name
+            items[idx].edit=false
+          }
+
+          const delItem=(id)=>{
+            items.splice(findIndexById(id),1)
+          }
+
+          const isDone=(value)=>{
+            items.map(item=>{
+              item.done = value
+            })
+          }
+
+          const delAll=()=>{
+            return items = []
+            }
+
+          const delIsDone =(value)=>{
+              // 將陣列清空再將filter完的陣列展開並塞入
+                  items.splice(0,items.length,...items.filter(item=>{
+                    return item.done!=value
+              }))
+            }
+
+          const inputStyle = computed(()=>{
+            return newItem.value.length===0?{border:'5px solid #333'}:newItem.value.length<2?{border:'5px solid red'}:{border:'5px solid blue'}
+          })
+
+          const filterItem = computed(()=>{
+            return items.filter(item=>{
+              if(filter.value===0) return true
+              else if(filter.value===-1) return !item.done
+              else return item.done
+            })
+          })
+          
+          // items本身為reactive已有深層監聽,不需要特別deep true
+          // watch的寫法 → watch後直接接function
+          watch(items,()=>{
+            localStorage.newTodo=JSON.stringify(items)
+          })
+
+          return{
+            newItem,
+            filter,
+            isDone,
+            delAll,
+            delIsDone,
+            saveEdit,
+            cancelEdit,
+            editItem,
+            delItem,
+            inputStyle,
+            filterItem,
+
+          }
+
+        }
+
+      }).mount('#app')
+    </script>
+  </body>
+</html>
